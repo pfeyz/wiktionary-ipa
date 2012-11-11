@@ -15,6 +15,7 @@ class IpaParser(sax.handler.ContentHandler):
         self.reading_ns = False
         self.reading_title = False
         self.reading_text = False
+        self.reading_english = False
         self.reading_phonetics = False
         self.reading_entry = False
         self.title = None
@@ -47,7 +48,11 @@ class IpaParser(sax.handler.ContentHandler):
         if self.reading_text:
             if self.lines == 0 :
                 print(">>>", self.title)
-            if content == "===Pronunciation===":
+            if content == "==English==":
+                self.reading_english = True
+            elif re.match("^==[^=]", content):
+                self.reading_english = False
+            if self.reading_english and content == "===Pronunciation===":
                 self.reading_phonetics = True
             elif content.startswith("==="):
                 self.reading_phonetics = False
@@ -78,6 +83,7 @@ class IpaParser(sax.handler.ContentHandler):
         if name == "text":
             self.reading_text = False
             self.reading_phonetics = False
+            self.reading_english = False
             self.lines = 0
 
         #print("{0}end {1}".format("|  " * self.depth, name))

@@ -1,12 +1,28 @@
 #!/usr/bin/env python3
 
+"""
+
+Not handled
+
+  * {{a|[[w:Canadian English|CA]]; US, in accents with the [[cot-caught
+      merger]]}} {{IPA|/ˈdɪfθɑŋ/|/ˈdɪpθɑŋ/}}
+
+  * {{a|RP|[[antepenultimate]] [[stress]]}}
+    {{IPA|/trɑːnsˈleɪtɹɪsiːz/|/trænsˈleɪtɹɪsiːz/|/trɑːnzˈleɪtɹɪsiːz/|/trænzˈleɪtɹɪsiːz/}}
+
+  * {{a|RP|[[penultimate]] stress}}
+    {{IPA|/ˌtrɑːnsleɪˈtɹaɪsiːz/|/ˌtrænsleɪˈtɹaɪsiːz/|/ˌtrɑːnzleɪˈtɹaɪsiːz/|/ˌtrænzleɪˈtɹaɪsiːz/}}
+
+"""
+
 from xml import sax
 import re
 
 class IpaParser(sax.handler.ContentHandler):
 
     special_chars = '"&<>'
-    region_regex = r"{{a\|(?P<regions>.*?)}}"
+    region_regex = r"{{a\|(.*?)}}"
+    ipa_regex = r"{{IPA\|(.*?)}}"
 
     def __init__(self, *args, **kwargs):
         super(sax.handler.ContentHandler, self).__init__(*args, **kwargs)
@@ -22,10 +38,15 @@ class IpaParser(sax.handler.ContentHandler):
         self.lines = 0
 
     def emit_entry(self):
-        print(self.entry)
+        ipa = re.search(self.ipa_regex, self.entry)
         region = re.search(self.region_regex, self.entry)
-        if region:
-            print("region={0}".format(region.group(1)))
+        if ipa and not re.search("lang=", ipa.group(1)):
+            print(self.title, end=", ")
+            if region:
+                regions = region.group(1).split("|")
+                print("regions={0}".format(", ".join(regions)), end=" - ")
+            transcriptions = re.findall(r"/(.*?)/", ipa.group(1))
+            print("ipa={0}".format(", ".join(transcriptions)))
 
     def startElement(self, name, attrs):
         if name == "page":
@@ -45,8 +66,6 @@ class IpaParser(sax.handler.ContentHandler):
         if self.reading_title:
             self.title = content
         if self.reading_text:
-            if self.lines == 0 :
-                print(">>>", self.title)
             if content == "===Pronunciation===":
                 self.reading_phonetics = True
             elif content.startswith("==="):
@@ -64,6 +83,7 @@ class IpaParser(sax.handler.ContentHandler):
             elif not content.strip():
                 if self.entry:
                     self.emit_entry()
+                self.entry = None
                 self.reading_entry = False
 
     def endElement(self, name):

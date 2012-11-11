@@ -24,8 +24,10 @@ class IpaParser(sax.handler.ContentHandler):
     region_regex = r"{{a\|(.*?)}}"
     ipa_regex = r"{{IPA\|(.*?)}}"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, language, regions=None, *args, **kwargs):
         super(sax.handler.ContentHandler, self).__init__(*args, **kwargs)
+        self.regions = regions if regions else []
+        self.language = language
         self.depth = 0
         self.reading_page = False
         self.reading_ns = False
@@ -41,13 +43,17 @@ class IpaParser(sax.handler.ContentHandler):
     def emit_entry(self):
         ipa = re.search(self.ipa_regex, self.entry)
         region = re.search(self.region_regex, self.entry)
-        if ipa and not re.search("lang=", ipa.group(1)):
-            print(self.title, end=", ")
+        if ipa:
+            transcriptions = re.findall(r"/(.*?)/", ipa.group(1))
             if region:
                 regions = region.group(1).split("|")
-                print("regions={0}".format(", ".join(regions)), end=" - ")
-            transcriptions = re.findall(r"/(.*?)/", ipa.group(1))
-            print("ipa={0}".format(", ".join(transcriptions)))
+            if not region or (set(regions) & set(self.regions)):
+                for tran in transcriptions:
+                    print(self.title, tran)
+                #print("regions={0}".format(", ".join(regions)), end=" - ")
+
+            #
+            #print("ipa={0}".format(", ".join(transcriptions)))
 
     def startElement(self, name, attrs):
         if name == "page":
@@ -67,9 +73,7 @@ class IpaParser(sax.handler.ContentHandler):
         if self.reading_title:
             self.title = content
         if self.reading_text:
-            if self.lines == 0 :
-                print(">>>", self.title)
-            if content == "==English==":
+            if content == "=={0}==".format(self.language):
                 self.reading_english = True
             elif re.match("^==[^=]", content):
                 self.reading_english = False
@@ -110,7 +114,8 @@ class IpaParser(sax.handler.ContentHandler):
 
         #print("{0}end {1}".format("|  " * self.depth, name))
 
-
-parser = sax.make_parser()
-parser.setContentHandler(IpaParser())
-parser.parse(open("enwik.xml"))
+if __name__ == "__main__":
+    parser = sax.make_parser()
+    parser.setContentHandler(IpaParser('English', ['US', 'GenAm', 'GenAM',
+                                                   'North America']))
+    parser.parse(open("enwik.xml"))

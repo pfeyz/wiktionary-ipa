@@ -2,7 +2,7 @@
 
 """
 
-Not handled
+Fails on the following region formats
 
   * {{a|[[w:Canadian English|CA]]; US, in accents with the [[cot-caught
       merger]]}} {{IPA|/ˈdɪfθɑŋ/|/ˈdɪpθɑŋ/}}

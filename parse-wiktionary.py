@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
 from xml import sax
+import re
 
 class IpaParser(sax.handler.ContentHandler):
 
     special_chars = '"&<>'
+    region_regex = r"{{a\|(?P<regions>.*?)}}"
 
     def __init__(self, *args, **kwargs):
         super(sax.handler.ContentHandler, self).__init__(*args, **kwargs)
@@ -21,6 +23,9 @@ class IpaParser(sax.handler.ContentHandler):
 
     def emit_entry(self):
         print(self.entry)
+        region = re.search(self.region_regex, self.entry)
+        if region:
+            print("region={0}".format(region.group(1)))
 
     def startElement(self, name, attrs):
         if name == "page":
